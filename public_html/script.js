@@ -1,4 +1,7 @@
 // -*- mode: javascript; indent-tabs-mode: nil; c-basic-offset: 8 -*-
+// Modified by Lignumaqua - Mike Wood - 1-14-16
+//
+
 "use strict";
 
 // Define our global variables
@@ -7,6 +10,12 @@ var Planes        = {};
 var PlanesOrdered = [];
 var SelectedPlane = null;
 var FollowSelected = false;
+
+var TracksVisible = true;
+var Range		  =  new Uint32Array(361);
+var RangeDirty    = true;
+var RangePoly     = [];
+var rangeline     = null;
 
 var SpecialSquawks = {
         '7500' : { cssClass: 'squawk7500', markerColor: 'rgb(255, 85, 85)', text: 'Aircraft Hijacking' },
@@ -38,6 +47,11 @@ var MessageCountHistory = [];
 var MessageRate = 0;
 
 var NBSP='\u00a0';
+
+// Get current range array from locastorage
+ if (localStorage && localStorage["Range"]) {
+    Range = JSON.parse(localStorage["Range"]);
+}
 
 function processReceiverUpdate(data) {
 	// Loop through all the planes in the data packet
@@ -121,6 +135,7 @@ function fetchData() {
                 
 		refreshTableInfo();
 		refreshSelected();
+        refreshRange();
                 
                 if (ReceiverClock) {
                         var rcv = new Date(now * 1000);
@@ -317,6 +332,7 @@ function initialize_map() {
         CenterLon = Number(localStorage['CenterLon']) || DefaultCenterLon;
         ZoomLvl = Number(localStorage['ZoomLvl']) || DefaultZoomLvl;
         MapType = localStorage['MapType'] || google.maps.MapTypeId.ROADMAP;
+        TracksVisible = Boolean(localStorage['Tracks']) || true;
 
         // Set SitePosition, initialize sorting
         if (SiteShow && (typeof SiteLat !==  'undefined') && (typeof SiteLon !==  'undefined')) {
@@ -474,20 +490,21 @@ function initialize_map() {
             new google.maps.Point(0, 0),    // Origin point of image
             new google.maps.Point(16, 16)); // Position where marker should point 
 	    var marker = new google.maps.Marker({
-                    position: SitePosition,
-                    map: GoogleMap,
-                    icon: markerImage,
-                    title: SiteName,
-                    zIndex: -99999
-            });
+          position: SitePosition,
+          map: GoogleMap,
+          icon: markerImage,
+          title: SiteName,
+          zIndex: -99999
+        });
         
-                if (SiteCircles) {
-                        for (var i=0;i<SiteCirclesDistances.length;i++) {
-                                drawCircle(marker, SiteCirclesDistances[i]); // in meters
-                        }
-                }
+        if (SiteCircles) {
+            for (var i=0;i<SiteCirclesDistances.length;i++) {
+              drawCircle(marker, SiteCirclesDistances[i]); // in meters
+            }
+        }
 	}
-
+    // Draw upintheair range polygons
+    
         // Add terrain-limit rings. To enable this:
         //
         //  create a panorama for your receiver location on heywhatsthat.com
@@ -508,6 +525,7 @@ function initialize_map() {
                                cache: true,
                                dataType: 'json' });
         request.done(function(data) {
+                var altitude_colors = ['#FF0000', '#0000FF', '#00FF00']; 
                 for (var i = 0; i < data.rings.length; ++i) {
                         var points = data.rings[i].points;
                         var ring = [];
@@ -519,8 +537,9 @@ function initialize_map() {
                         new google.maps.Polyline({
                                 path: ring,
                                 strokeOpacity: 1.0,
-                                strokeColor: '#000000',
-                                strokeWeight: 1,
+                                strokeColor: altitude_colors[i],
+                                strokeWeight: 2,
+                                clickable: false,
                                 map: GoogleMap });
                 }
         });
@@ -528,6 +547,7 @@ function initialize_map() {
         request.fail(function(jqxhr, status, error) {
                 // no rings available, do nothing
         });
+        
 }
 
 // This looks for planes to reap out of the master Planes variable
@@ -576,6 +596,28 @@ function refreshPageTitle() {
         document.title = PageName + ' - ' + subtitle;
 }
 
+// Refresh range polygon
+function refreshRange() {
+    if (RangeDirty) {
+        var rangepoints  = [];
+        for (var a = 0; a < 360; ++a) {
+            rangepoints[a] = google.maps.geometry.spherical.computeOffset(SitePosition, Range[a], a);
+        }
+        // Close polyline
+        rangepoints[360] = rangepoints[0];
+        if (rangeline) {
+            rangeline.setPath(rangepoints);
+        } else {
+            rangeline = new google.maps.Polyline({ map: GoogleMap, path: rangepoints, strokeColor: '#008000', strokeWeight: 2, strokeOpacity: 1, clickable: false });
+        }
+        // Store array in localstorage
+        localStorage["Range"] = JSON.stringify(Range);
+        RangeDirty = false;
+    }
+}
+
+
+
 // Refresh the detail window about the plane
 function refreshSelected() {
         if (MessageCountHistory.length > 1) {
@@ -594,24 +636,26 @@ function refreshSelected() {
     	        selected = Planes[SelectedPlane];
         }
         
+        $('#dump1090_infoblock').css('display','block');
+        $('#dump1090_version').text(Dump1090Version);
+        $('#dump1090_total_ac').text(TrackedAircraft);
+        $('#dump1090_total_ac_positions').text(TrackedAircraftPositions);
+        $('#dump1090_total_history').text(TrackedHistorySize);
+
+        if (MessageRate !== null) {
+                $('#dump1090_message_rate').text(MessageRate.toFixed(1));
+        } else {
+                $('#dump1090_message_rate').text("n/a");
+        }
+
+
         if (!selected) {
                 $('#selected_infoblock').css('display','none');
-                $('#dump1090_infoblock').css('display','block');
-                $('#dump1090_version').text(Dump1090Version);
-                $('#dump1090_total_ac').text(TrackedAircraft);
-                $('#dump1090_total_ac_positions').text(TrackedAircraftPositions);
-                $('#dump1090_total_history').text(TrackedHistorySize);
-
-                if (MessageRate !== null) {
-                        $('#dump1090_message_rate').text(MessageRate.toFixed(1));
-                } else {
-                        $('#dump1090_message_rate').text("n/a");
-                }
-
-                return;
+            return;
         }
+               
         
-        $('#dump1090_infoblock').css('display','none');
+        // $('#dump1090_infoblock').css('display','none');
         $('#selected_infoblock').css('display','block');
         
         if (selected.flight !== null && selected.flight !== "") {
@@ -852,6 +896,7 @@ function selectPlaneByHex(hex,autofollow) {
 		// Assign the new selected
 		SelectedPlane = hex;
 		Planes[SelectedPlane].selected = true;
+        Planes[SelectedPlane].clearLines();
 		Planes[SelectedPlane].updateLines();
 		Planes[SelectedPlane].updateMarker();
                 $(Planes[SelectedPlane].tr).addClass("selected");
@@ -915,3 +960,29 @@ function drawCircle(marker, distance) {
     });
     circle.bindTo('center', marker, 'position');
 }
+
+
+function toggleTracks() {
+        // Toggle showing all plane tracks or just selected plane
+        TracksVisible = !TracksVisible;
+        localStorage['Tracks'] = TracksVisible;
+        for (var i = 0; i < PlanesOrdered.length; ++i) {
+                if (!TracksVisible) {
+                PlanesOrdered[i].clearLines();
+            } else {
+                PlanesOrdered[i].updateLines();
+            }
+        }
+}
+
+
+function resetRange() {
+        // Reset rangle polygon
+        for (var a = 0; a < 361; ++a) {
+            Range[a] = 0;
+        }
+        // Store array in localstorage
+        localStorage["Range"] = JSON.stringify(Range);   
+}
+
+

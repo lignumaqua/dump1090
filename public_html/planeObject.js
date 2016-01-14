@@ -1,3 +1,6 @@
+// Modified by Lignumaqua - Mike Wood - 1-14-16
+//
+
 "use strict";
 
 function PlaneObject(icao) {
@@ -16,6 +19,7 @@ function PlaneObject(icao) {
         this.position  = null;
         this.position_from_mlat = false
         this.sitedist  = null;
+        this.bearing   = null;
 
 	// Data packet numbers
 	this.messages  = null;
@@ -37,6 +41,7 @@ function PlaneObject(icao) {
         this.visible = true;
         this.marker = null;
         this.icon = { type: 'generic' };
+        this.mapLabel = null;
 
         // request metadata
         this.registration = null;
@@ -54,6 +59,10 @@ function PlaneObject(icao) {
 		        refreshSelected();
                 }
         }.bind(this));
+}
+
+function numberWithCommas(x) {
+    return (""+x).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 // Appends data to the running track so we can get a visual tail on the plane
@@ -211,7 +220,7 @@ PlaneObject.prototype.getMarkerColor = function() {
                                 if (i == hpoints.length-1) {
                                         h = hpoints[i].val;
                                 } else {
-                                        h = hpoints[i].val + (hpoints[i+1].val - hpoints[i].val) * (this.altitude - hpoints[i].alt) / (hpoints[i+1].alt - hpoints[i].alt)
+                                        h = hpoints[i].val + ((hpoints[i+1].val - hpoints[i].val) * (this.altitude - hpoints[i].alt) / (hpoints[i+1].alt - hpoints[i].alt));
                                 }
                                 break;
                         }
@@ -276,7 +285,6 @@ PlaneObject.prototype.updateIcon = function() {
         this.icon.scale = MarkerIcons[type].scale;
         if (this.marker)
                 this.marker.setIcon(this.icon);
-        
         return true;
 };
 
@@ -296,11 +304,23 @@ PlaneObject.prototype.updateData = function(receiver_timestamp, data) {
         if (typeof data.track !== "undefined")
                 this.track	= data.track;
         if (typeof data.lat !== "undefined") {
-                this.position   = new google.maps.LatLng(data.lat, data.lon);
+                this.position   = new google.maps.LatLng(data.lat, data.lon);               
                 this.last_position_time = receiver_timestamp - data.seen_pos;
 
                 if (SitePosition !== null) {
                         this.sitedist = google.maps.geometry.spherical.computeDistanceBetween (SitePosition, this.position);
+                         // Calculate bearing and update Range[] array
+                        this.bearing = Math.floor(google.maps.geometry.spherical.computeHeading(SitePosition,this.position));
+                        if (this.bearing < 0) {
+                            this.bearing = 360 + this.bearing;
+                        }
+                        // Update the range polygon data if the distance is greater than stored
+                        if (this.sitedist > Range[this.bearing]) {
+                            Range[this.bearing] = this.sitedist;
+                            // Set dirty flag to trigger redraw of polygon on next tick
+                            RangeDirty = true;
+                            //console.log(this.bearing, Range[this.bearing], this.sitedist);
+                        }
                 }
 
                 this.position_from_mlat = false;
@@ -331,6 +351,8 @@ PlaneObject.prototype.updateTick = function(receiver_timestamp, last_timestamp) 
                 if (this.visible) {
                         //console.log("hiding " + this.icao);
                         this.clearMarker();
+                        this.clearLabel();
+                        this.clearLines();
                         this.visible = false;
 			if (SelectedPlane == this.icao)
                                 selectPlaneByHex(null,false);
@@ -346,6 +368,8 @@ PlaneObject.prototype.updateTick = function(receiver_timestamp, last_timestamp) 
                         }
                 } else {
 			this.clearMarker();
+            this.clearLabel();
+            this.clearLines();
 		}
 	}
 };
@@ -362,6 +386,8 @@ PlaneObject.prototype.clearMarker = function() {
 PlaneObject.prototype.updateMarker = function(moved) {
         if (!this.visible) {
                 this.clearMarker();
+                this.clearLabel();
+                this.clearLines();
                 return;
         }
         
@@ -369,6 +395,7 @@ PlaneObject.prototype.updateMarker = function(moved) {
                 if (moved)
 			this.marker.setPosition(this.position);
                 this.updateIcon();
+                this.mapLabel.set('text', numberWithCommas(this.altitude));
 	} else {
                 this.updateIcon();
 		this.marker = new google.maps.Marker({
@@ -377,7 +404,7 @@ PlaneObject.prototype.updateMarker = function(moved) {
 			icon: this.icon,
 			visible: true
 		});
-                
+           this.updateLabel();     
 		// Trap clicks for this marker.
 		google.maps.event.addListener(this.marker, 'click', selectPlaneByHex.bind(undefined,this.icao,false));
 		google.maps.event.addListener(this.marker, 'dblclick', selectPlaneByHex.bind(undefined,this.icao,true));
@@ -389,10 +416,37 @@ PlaneObject.prototype.updateMarker = function(moved) {
 	        this.marker.setTitle(title);
 };
 
+PlaneObject.prototype.updateLabel = function() {
+      this.mapLabel = new MapLabel({
+          text: numberWithCommas(this.altitude),
+          position: this.position,
+          map: GoogleMap,
+          fontSize: 12,
+          align: 'center',
+          strokeWeight: 2,
+          fontColor: '#303030',
+          yoffset: -25
+        });
+                
+        this.mapLabel.bindTo('GoogleMap', this.marker);
+        this.mapLabel.bindTo('position', this.marker);
+        
+}
+
+PlaneObject.prototype.clearLabel = function() {
+    if (this.mapLabel) {
+        this.mapLabel.onRemove();
+        this.mapLabel.setMap(null);
+        this.mapLabel = null;
+    }
+};
+
 // Update our planes tail line,
 PlaneObject.prototype.updateLines = function() {
-        if (!this.selected)
-                return;
+        if (!this.selected && !TracksVisible) {
+            return;
+            }
+        var col = this.getMarkerColor();
         
         for (var i = 0; i < this.track_linesegs.length; ++i) {
                 var seg = this.track_linesegs[i];
@@ -406,14 +460,14 @@ PlaneObject.prototype.updateLines = function() {
                                 var lineSymbol = {
                                         path: 'M 0,-1 0,1',
                                         strokeOpacity : 1,
-                                        strokeColor : '#804040',
-                                        strokeWeight : 2,
+                                        strokeColor : col,
+                                        strokeWeight : 1,
                                         scale: 2
                                 };
                                 
                                 seg.line = new google.maps.Polyline({
                                         path: seg.track,
-					strokeOpacity: 0,
+					                    strokeOpacity: 0,
                                         icons: [{
                                                 icon: lineSymbol,
                                                 offset: '0',
@@ -421,11 +475,11 @@ PlaneObject.prototype.updateLines = function() {
                                         map : GoogleMap });
                         } else {
                                 seg.line = new google.maps.Polyline({
-                                        path: seg.track,
-					strokeOpacity: 1.0,
-					strokeColor: (seg.ground ? '#408040' : '#000000'),
-					strokeWeight: 3,
-					map: GoogleMap });
+                                       path: seg.track,
+					                   strokeOpacity: (this.selected ? 1.0 : 0.3),
+					                   strokeColor: (seg.ground ? '#408040' : col),
+					                   strokeWeight: 2,
+					                   map: GoogleMap });
                         }
                 }
         }
@@ -434,4 +488,5 @@ PlaneObject.prototype.updateLines = function() {
 PlaneObject.prototype.destroy = function() {
         this.clearLines();
         this.clearMarker();
+        this.clearLabel();
 };
