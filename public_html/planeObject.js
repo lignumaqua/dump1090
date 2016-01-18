@@ -98,6 +98,20 @@ PlaneObject.prototype.updateTrack = function(estimate_time) {
         if (!new_data)
                 return false;
         
+        // Increment HeatPoly count for one grid square if new plane is in it.
+        var latindex = Math.floor((here.lat() - minlat)/latstep);
+        var lonindex = Math.floor((here.lng() - minlon)/lonstep);
+        var lastlatindex = Math.floor((lastpos.lat() - minlat)/latstep);
+        var lastlonindex = Math.floor((lastpos.lng() - minlon)/lonstep);
+        //console.log(latindex,lonindex);
+        if (latindex != lastlatindex || lonindex != lastlonindex) {
+            if (latindex >=0 && latindex <400 && lonindex >=0 && lonindex <400) {
+                HeatPoly[latindex][lonindex]++;
+                //console.log(latindex, lastlatindex, lonindex, lastlonindex, HeatPoly[latindex][lonindex]);
+            }
+        }
+                
+
         if (est_track) {
                 if (!lastseg.estimated) {
                         // >5s gap in data, create a new estimated segment
@@ -306,7 +320,7 @@ PlaneObject.prototype.updateData = function(receiver_timestamp, data) {
         if (typeof data.lat !== "undefined") {
                 this.position   = new google.maps.LatLng(data.lat, data.lon);               
                 this.last_position_time = receiver_timestamp - data.seen_pos;
-
+              
                 if (SitePosition !== null) {
                         this.sitedist = google.maps.geometry.spherical.computeDistanceBetween (SitePosition, this.position);
                          // Calculate bearing and update Range[] array
@@ -430,7 +444,6 @@ PlaneObject.prototype.updateLabel = function() {
                 
         this.mapLabel.bindTo('GoogleMap', this.marker);
         this.mapLabel.bindTo('position', this.marker);
-        
 }
 
 PlaneObject.prototype.clearLabel = function() {

@@ -69,6 +69,56 @@ div#timestamps {flex: 1 0 auto;}
 
 div#sudo_buttons {flex: 1 0 auto;}
 
+/* Style The Dropdown Button */
+.dropbtn {
+    padding: 4px;
+    cursor: pointer;
+    width: 50%;
+    margin: 0px auto;
+    display: block;
+}
+
+/* The container <div> - needed to position the dropdown content */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+/* Dropdown Content (Hidden by Default) */
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    width: 100%;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+}
+
+/* Buttons inside the dropdown */
+.dropdown-content button {
+    color: black;
+    padding: 8px;
+    text-decoration: none;
+    display: block;
+    width: 200px;
+    margin: 0 auto;
+    margin-top: 3px;
+    margin-bottom: 3px;
+}
+
+/* Change color of dropdown links on hover */
+.dropdown-content button:hover {background-color: #f1f1f1}
+
+/* Show the dropdown menu on hover */
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+/* Change the background color of the dropdown button when the dropdown content is shown */
+.dropdown:hover .dropbtn {
+    background-color: #222222;
+    color: #FFFFFF;
+}
+
 
 @media only screen and (max-width: 800px) {
     /* For tablets: */

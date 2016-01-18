@@ -16,6 +16,8 @@ var Range		  =  new Uint32Array(361);
 var RangeDirty    = true;
 var RangePoly     = [];
 var rangeline     = null;
+var ShowHeatMap   = false;
+var HeatMapValid  = false;
 
 var SpecialSquawks = {
         '7500' : { cssClass: 'squawk7500', markerColor: 'rgb(255, 85, 85)', text: 'Aircraft Hijacking' },
@@ -47,6 +49,23 @@ var MessageCountHistory = [];
 var MessageRate = 0;
 
 var NBSP='\u00a0';
+
+// Set and initialize Heatmap variables. Grid has 400 x 400 boxes each approx 1 mile square
+var minlat = 90;
+var maxlat = -90;
+var minlon = 180;
+var maxlon = -180;
+var latstep = 0;
+var lonstep = 0;
+var HeatPoly = [];
+for (var i = 0; i < 400; ++i){
+      var columns = [];
+      for (var j = 0; j < 400; ++j){
+         columns[j] = 0;
+      }
+      HeatPoly[i] = columns;
+    }
+var HeatMapArray = [];
 
 // Get current range array from locastorage
  if (localStorage && localStorage["Range"]) {
@@ -319,6 +338,9 @@ function end_load_history() {
         // And kick off one refresh immediately.
         fetchData();
 
+        // Updating the heatmap is expensive, only do it once every 5 seconds.
+        window.setInterval(refreshHeatmap, 5000);
+
 }
 
 function generic_gettile(template, coord, zoom) {
@@ -476,6 +498,8 @@ function initialize_map() {
     
         google.maps.event.addListener(GoogleMap, 'zoom_changed', function() {
                 localStorage['ZoomLvl']  = GoogleMap.getZoom();
+                // Force refresh of heatmap is zoom is changed
+                refreshHeatmap();
         });
 	
         google.maps.event.addListener(GoogleMap, 'maptypeid_changed', function() {
@@ -503,6 +527,22 @@ function initialize_map() {
             }
         }
 	}
+
+    // Calculate extents for Heatmap 
+    // 200 miles N,S,E, and W from site
+
+    if (SitePosition) {
+        maxlat = google.maps.geometry.spherical.computeOffset(SitePosition, 200 * 1609,0).lat();
+        minlat = google.maps.geometry.spherical.computeOffset(SitePosition, 200 * 1609,180).lat();
+        maxlon = google.maps.geometry.spherical.computeOffset(SitePosition, 200 * 1609,90).lng();
+        minlon = google.maps.geometry.spherical.computeOffset(SitePosition, 200 * 1609,270).lng();
+        console.log(minlat, maxlat, minlon, maxlon);
+        latstep = (maxlat - minlat)/400;
+        lonstep = (maxlon - minlon)/400;
+        HeatMapValid = true;
+    }
+
+
     // Draw upintheair range polygons
     
         // Add terrain-limit rings. To enable this:
@@ -533,7 +573,6 @@ function initialize_map() {
                                 ring.push(new google.maps.LatLng(points[j][0], points[j][1]));
                         }
                         ring.push(ring[0]);
-
                         new google.maps.Polyline({
                                 path: ring,
                                 strokeOpacity: 1.0,
@@ -547,6 +586,15 @@ function initialize_map() {
         request.fail(function(jqxhr, status, error) {
                 // no rings available, do nothing
         });
+
+    // Draw heatmap from 400x400 array
+        if (HeatMapValid) {
+        window.heatmap = new google.maps.visualization.HeatmapLayer({
+            data: HeatMapArray,
+            dissipating: true,
+            radius: 15,
+            opacity: 0.6});
+        }
         
 }
 
@@ -616,7 +664,38 @@ function refreshRange() {
     }
 }
 
+// Refresh Heat Map Array
+function refreshHeatmap() {
+    if (HeatMapValid) {
+        HeatMapArray = [];
+        var heatmapmax = 0;
+        // Iterate through each of our 400 x 400 boxes (little slow but a lot quicker than running on the raw data)
+        for (var i = 0; i < 400; ++i){
+            for (var j = 0; j < 400; ++j){
+                if (HeatPoly[i][j] > 0) {
+                    if (HeatPoly[i][j] > heatmapmax) {
+                        heatmapmax = HeatPoly[i][j];
+                    }
+                    var weightedLoc = {
+                        location: new google.maps.LatLng(minlat+(latstep * i),minlon+(lonstep*j)),
+                        weight: HeatPoly[i][j]
+                    };
+                    HeatMapArray.push(weightedLoc);
+                }
+            }
+        }
+        heatmap.set('data', HeatMapArray);
 
+        // Rescale data to current levels
+        heatmap.set('maxIntensity', heatmapmax);
+
+        // Set radius relative to zoom size
+        // zooming in needs larger radius to look correct
+        var curzoom = GoogleMap.getZoom();
+        var zoomarray = [4,4,4,4,4,4,4,8,12,25,45,45,45,45,45,45,45,45,45,45];
+        heatmap.set('radius', zoomarray[curzoom]);
+    }
+}
 
 // Refresh the detail window about the plane
 function refreshSelected() {
@@ -986,3 +1065,9 @@ function resetRange() {
 }
 
 
+function toggleHeatmap() {
+    if (HeatMapValid) {
+         heatmap.setMap(heatmap.getMap() ? null : GoogleMap);
+         refreshHeatmap();
+    }
+}

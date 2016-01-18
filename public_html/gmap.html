@@ -6,7 +6,7 @@
 		<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" />
 		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 		<script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
-		<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?sensor=false&amp;libraries=geometry"></script>
+		<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?sensor=false&amp;libraries=geometry,visualization"></script>
 		<script type="text/javascript" src="config.js"></script>
 		<script type="text/javascript" src="markers.js"></script>
 		<script type="text/javascript" src="dbloader.js"></script>
@@ -57,22 +57,17 @@
 					  </tr>
                                         </table>
 				</div>
-				<div id="sudo_buttons">
-					<table width="100%">
-                                          <tr>
-					    <td width="150" style="text-align: center;" class="pointer">
-					      <button onclick="resetMap();">Reset Map</button>
-					    </td>
-              <td width="150" style="text-align: center;" class="pointer">
-                <button onclick="resetRange();">Reset Range</button>
-              </td>
-              <td width="150" style="text-align: center;" class="pointer">
-                <button onclick="toggleTracks();">Toggle Tracks</button>
-              </td>
-					  </tr>
-                                        </table>
-				</div>
+        <div class="dropdown">
+  <button class="dropbtn">Settings</button>
+  <div class="dropdown-content">
+    <button onclick="resetMap();">Reset Map</button>
+    <button onclick="resetRange();">Reset Range</button>
+    <button onclick="toggleTracks();">Toggle Tracks</button>
+    <button onclick="toggleHeatmap();">Toggle Heatmap</button>
+  </div>
+</div>
 
+	
 				<div id="dump1090_infoblock">
                                   <table width="100%">
                                     <tr class="infoblock_heading">
