@@ -15,9 +15,11 @@ var TracksVisible = true;
 var Range		  =  new Uint32Array(361);
 var RangeDirty    = true;
 var RangePoly     = [];
+var ShowRange     = true;
 var rangeline     = null;
 var ShowHeatMap   = false;
 var HeatMapValid  = false;
+var ShowAll       = false;
 
 var SpecialSquawks = {
         '7500' : { cssClass: 'squawk7500', markerColor: 'rgb(255, 85, 85)', text: 'Aircraft Hijacking' },
@@ -50,7 +52,11 @@ var MessageRate = 0;
 
 var NBSP='\u00a0';
 
-// Set and initialize Heatmap variables. Grid has 400 x 400 boxes each approx 1 mile square
+// Set and initialize Heatmap variables. Grid has HeatMapRange (400 x 400) boxes each approx 1 mile square
+if (typeof HeatMapRange === 'undefined') {
+    var HeatMapRange = 200;
+}
+
 var minlat = 90;
 var maxlat = -90;
 var minlon = 180;
@@ -58,9 +64,9 @@ var maxlon = -180;
 var latstep = 0;
 var lonstep = 0;
 var HeatPoly = [];
-for (var i = 0; i < 400; ++i){
+for (var i = 0; i < (HeatMapRange * 2); ++i){
       var columns = [];
-      for (var j = 0; j < 400; ++j){
+      for (var j = 0; j < (HeatMapRange * 2); ++j){
          columns[j] = 0;
       }
       HeatPoly[i] = columns;
@@ -529,16 +535,16 @@ function initialize_map() {
 	}
 
     // Calculate extents for Heatmap 
-    // 200 miles N,S,E, and W from site
+    // HeatMapRange (200) miles N,S,E, and W from site
 
     if (SitePosition) {
-        maxlat = google.maps.geometry.spherical.computeOffset(SitePosition, 200 * 1609,0).lat();
-        minlat = google.maps.geometry.spherical.computeOffset(SitePosition, 200 * 1609,180).lat();
-        maxlon = google.maps.geometry.spherical.computeOffset(SitePosition, 200 * 1609,90).lng();
-        minlon = google.maps.geometry.spherical.computeOffset(SitePosition, 200 * 1609,270).lng();
+        maxlat = google.maps.geometry.spherical.computeOffset(SitePosition, HeatMapRange * 1609,0).lat();
+        minlat = google.maps.geometry.spherical.computeOffset(SitePosition, HeatMapRange * 1609,180).lat();
+        maxlon = google.maps.geometry.spherical.computeOffset(SitePosition, HeatMapRange * 1609,90).lng();
+        minlon = google.maps.geometry.spherical.computeOffset(SitePosition, HeatMapRange * 1609,270).lng();
         console.log(minlat, maxlat, minlon, maxlon);
-        latstep = (maxlat - minlat)/400;
-        lonstep = (maxlon - minlon)/400;
+        latstep = (maxlat - minlat)/(HeatMapRange *2);
+        lonstep = (maxlon - minlon)/(HeatMapRange *2);
         HeatMapValid = true;
     }
 
@@ -653,10 +659,12 @@ function refreshRange() {
         }
         // Close polyline
         rangepoints[360] = rangepoints[0];
-        if (rangeline) {
-            rangeline.setPath(rangepoints);
-        } else {
-            rangeline = new google.maps.Polyline({ map: GoogleMap, path: rangepoints, strokeColor: '#008000', strokeWeight: 2, strokeOpacity: 1, clickable: false });
+        if (ShowRange) {
+            if (rangeline) {
+                rangeline.setPath(rangepoints);
+            } else {
+                rangeline = new google.maps.Polyline({ map: GoogleMap, path: rangepoints, strokeColor: '#008000', strokeWeight: 2, strokeOpacity: 1, clickable: false });
+            }
         }
         // Store array in localstorage
         localStorage["Range"] = JSON.stringify(Range);
@@ -669,9 +677,9 @@ function refreshHeatmap() {
     if (HeatMapValid) {
         HeatMapArray = [];
         var heatmapmax = 0;
-        // Iterate through each of our 400 x 400 boxes (little slow but a lot quicker than running on the raw data)
-        for (var i = 0; i < 400; ++i){
-            for (var j = 0; j < 400; ++j){
+        // Iterate through each of our HeatMapRange (400 x 400) boxes (little slow but a lot quicker than running on the raw data)
+        for (var i = 0; i < (HeatMapRange * 2); ++i){
+            for (var j = 0; j < (HeatMapRange * 2); ++j){
                 if (HeatPoly[i][j] > 0) {
                     if (HeatPoly[i][j] > heatmapmax) {
                         heatmapmax = HeatPoly[i][j];
@@ -1070,4 +1078,37 @@ function toggleHeatmap() {
          heatmap.setMap(heatmap.getMap() ? null : GoogleMap);
          refreshHeatmap();
     }
+}
+
+function toggleRange() {
+    if (ShowRange) {
+        if (rangeline) {
+            rangeline.setMap(null);
+        }
+    } else {
+        RangeDirty = true;
+        rangeline.setMap(GoogleMap);
+        refreshRange();
+    }
+    ShowRange = !ShowRange;
+}
+
+
+function toggleColumns() {
+    if (ShowAll) {
+         $('td:nth-child(4)').hide();
+         $('td:nth-child(8)').hide();
+         $('td:nth-child(9)').hide();
+         document.getElementById("map_canvas").style.marginRight = "320px";
+         document.getElementById("sidebar_container").style.marginLeft = "-320px";
+         document.getElementById("sidebar_container").style.width = "320px";
+    } else {
+        $('td:nth-child(4)').show();
+        $('td:nth-child(8)').show();
+        $('td:nth-child(9)').show();
+        document.getElementById("map_canvas").style.marginRight = "380px";
+        document.getElementById("sidebar_container").style.marginLeft = "-380px";
+        document.getElementById("sidebar_container").style.width = "380px";
+    }
+    ShowAll = !ShowAll;
 }

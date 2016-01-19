@@ -105,7 +105,7 @@ PlaneObject.prototype.updateTrack = function(estimate_time) {
         var lastlonindex = Math.floor((lastpos.lng() - minlon)/lonstep);
         //console.log(latindex,lonindex);
         if (latindex != lastlatindex || lonindex != lastlonindex) {
-            if (latindex >=0 && latindex <400 && lonindex >=0 && lonindex <400) {
+            if (latindex >=0 && latindex <(HeatMapRange*2) && lonindex >=0 && lonindex <(HeatMapRange*2)) {
                 HeatPoly[latindex][lonindex]++;
                 //console.log(latindex, lastlatindex, lonindex, lastlonindex, HeatPoly[latindex][lonindex]);
             }

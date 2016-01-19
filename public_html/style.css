@@ -96,7 +96,7 @@ div#sudo_buttons {flex: 1 0 auto;}
 /* Buttons inside the dropdown */
 .dropdown-content button {
     color: black;
-    padding: 8px;
+    padding: 4px;
     text-decoration: none;
     display: block;
     width: 200px;

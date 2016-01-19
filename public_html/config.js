@@ -127,3 +127,6 @@ ShowFlags = true;
 
 // Path to country flags (can be a relative or absolute URL; include a trailing /)
 FlagPath = "flags-tiny/";
+
+// Grid size for heatmap. Range in miles from Site. Default 200. 
+HeatMapRange = 200;
