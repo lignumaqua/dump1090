@@ -6,6 +6,8 @@
 
 // Define our global variables
 var GoogleMap     = null;
+var Weathertile   = null;
+var europeOverlay = null;
 var Planes        = {};
 var PlanesOrdered = [];
 var SelectedPlane = null;
@@ -15,11 +17,19 @@ var TracksVisible = true;
 var Range		  =  new Uint32Array(361);
 var RangeDirty    = true;
 var RangePoly     = [];
-var ShowRange     = true;
+var ShowRange     = false;
 var rangeline     = null;
 var ShowHeatMap   = false;
 var HeatMapValid  = false;
 var ShowAll       = false;
+var ShowWeather   = false;
+var imageBounds   = {
+        north: 72.05,
+        south: 32.55,
+        east: 51.25,
+        west: -19.6
+};
+
 
 var SpecialSquawks = {
         '7500' : { cssClass: 'squawk7500', markerColor: 'rgb(255, 85, 85)', text: 'Aircraft Hijacking' },
@@ -347,6 +357,12 @@ function end_load_history() {
         // Updating the heatmap is expensive, only do it once every 5 seconds.
         window.setInterval(refreshHeatmap, 5000);
 
+        // Update US Weather Tiles once a minute.
+        window.setInterval(refreshUSWeather, 60000);
+
+        // Update Europe Weather Image once every 15 minutes.
+        window.setInterval(refreshEUWeather, 15*60000);
+
 }
 
 function generic_gettile(template, coord, zoom) {
@@ -360,7 +376,15 @@ function initialize_map() {
         CenterLon = Number(localStorage['CenterLon']) || DefaultCenterLon;
         ZoomLvl = Number(localStorage['ZoomLvl']) || DefaultZoomLvl;
         MapType = localStorage['MapType'] || google.maps.MapTypeId.ROADMAP;
-        TracksVisible = Boolean(localStorage['Tracks']) || true;
+        TracksVisible =  JSON.parse(localStorage['Tracks']);
+        if (localStorage['ShowRange']) {
+            ShowRange = JSON.parse(localStorage['ShowRange']);
+        }
+
+        if (localStorage['ShowAll']) {
+            ShowAll = !JSON.parse(localStorage['ShowAll']);
+            toggleColumns();
+        }
 
         // Set SitePosition, initialize sorting
         if (SiteShow && (typeof SiteLat !==  'undefined') && (typeof SiteLon !==  'undefined')) {
@@ -512,6 +536,33 @@ function initialize_map() {
                 localStorage['MapType'] = GoogleMap.getMapTypeId();
         });
 
+        // US Weather
+        Weathertile = new google.maps.ImageMapType({
+            getTileUrl: function(tile, zoom) {
+                return "http://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/" + zoom + "/" + tile.x + "/" + tile.y +".png?"+ (new Date()).getTime(); 
+            },
+            tileSize: new google.maps.Size(256, 256),
+            opacity:0.3,
+            name : 'NEXRAD',
+            isPng: true
+        });
+
+        // European Weather
+
+        
+        
+        
+
+        if (localStorage['ShowWeather']) {
+            ShowWeather = JSON.parse(localStorage['ShowWeather']);
+        }
+        if (ShowWeather) {
+            // US
+            GoogleMap.overlayMapTypes.push(Weathertile);
+            // Europe
+            showEUWeather();
+        }
+
 	// Add home marker if requested
 	if (SitePosition) {
 	    var markerImage = new google.maps.MarkerImage(
@@ -601,6 +652,8 @@ function initialize_map() {
             radius: 15,
             opacity: 0.6});
         }
+
+
         
 }
 
@@ -659,16 +712,18 @@ function refreshRange() {
         }
         // Close polyline
         rangepoints[360] = rangepoints[0];
-        if (ShowRange) {
-            if (rangeline) {
-                rangeline.setPath(rangepoints);
-            } else {
-                rangeline = new google.maps.Polyline({ map: GoogleMap, path: rangepoints, strokeColor: '#008000', strokeWeight: 2, strokeOpacity: 1, clickable: false });
-            }
+        if (rangeline) {
+            rangeline.setPath(rangepoints);
+        } else {
+            rangeline = new google.maps.Polyline({path: rangepoints, strokeColor: '#008000', strokeWeight: 2, strokeOpacity: 1, clickable: false });
         }
+        
         // Store array in localstorage
         localStorage["Range"] = JSON.stringify(Range);
         RangeDirty = false;
+        if (ShowRange) {
+            rangeline.setMap(GoogleMap);
+        }
     }
 }
 
@@ -704,6 +759,26 @@ function refreshHeatmap() {
         heatmap.set('radius', zoomarray[curzoom]);
     }
 }
+
+
+// Refresh US Weather Tiles
+function refreshUSWeather() {
+    if (ShowWeather) {
+        GoogleMap.overlayMapTypes.clear();
+        GoogleMap.overlayMapTypes.push(Weathertile);
+    }
+}
+
+// Refresh EU Weather Image
+function refreshEUWeather() {
+    europeOverlay.setMap(null);
+    if (ShowWeather) {
+        showEUWeather();
+    }
+}
+
+
+
 
 // Refresh the detail window about the plane
 function refreshSelected() {
@@ -1052,7 +1127,7 @@ function drawCircle(marker, distance) {
 function toggleTracks() {
         // Toggle showing all plane tracks or just selected plane
         TracksVisible = !TracksVisible;
-        localStorage['Tracks'] = TracksVisible;
+        localStorage['Tracks'] = JSON.stringify(TracksVisible);
         for (var i = 0; i < PlanesOrdered.length; ++i) {
                 if (!TracksVisible) {
                 PlanesOrdered[i].clearLines();
@@ -1069,7 +1144,7 @@ function resetRange() {
             Range[a] = 0;
         }
         // Store array in localstorage
-        localStorage["Range"] = JSON.stringify(Range);   
+        localStorage['Range'] = JSON.stringify(Range);   
 }
 
 
@@ -1080,17 +1155,31 @@ function toggleHeatmap() {
     }
 }
 
+function toggleWeather() {
+    if (ShowWeather) {
+        GoogleMap.overlayMapTypes.clear();
+        europeOverlay.setMap(null);
+        ShowWeather = false;
+    } else {
+        // US
+        GoogleMap.overlayMapTypes.push(Weathertile);
+        // Europe
+        showEUWeather();
+        ShowWeather = true;
+    }
+    localStorage['ShowWeather'] = JSON.stringify(ShowWeather);   
+}
+
 function toggleRange() {
     if (ShowRange) {
-        if (rangeline) {
-            rangeline.setMap(null);
-        }
+        rangeline.setMap(null);
     } else {
         RangeDirty = true;
         rangeline.setMap(GoogleMap);
         refreshRange();
     }
     ShowRange = !ShowRange;
+    localStorage['ShowRange'] = JSON.stringify(ShowRange);   
 }
 
 
@@ -1111,4 +1200,44 @@ function toggleColumns() {
         document.getElementById("sidebar_container").style.width = "380px";
     }
     ShowAll = !ShowAll;
+    localStorage['ShowAll'] = JSON.stringify(ShowAll);   
+}
+
+function formatdate(x) {
+        if (x < 10) {x = "0" + x;}
+        return String(x);
+}
+
+function weatherTimestamp() {
+    // Need UTC time that is 15 minutes ago rounded down to the nearest prior 15 minute interval
+    var timestamp = "";
+    // Subtract 15 minutes from current UTC time
+    var d = new Date(new Date() - 15*60000);
+    //Year
+    timestamp = timestamp + String(d.getUTCFullYear());
+    
+    //Month
+    timestamp = timestamp + formatdate(d.getUTCMonth() + 1);
+
+    //Date
+    timestamp = timestamp + formatdate(d.getUTCDate());
+
+    //Hour
+    timestamp = timestamp + formatdate(d.getUTCHours());
+
+    //Minutes
+    var minute = d.getUTCMinutes();
+    minute = (Math.floor(minute / 15)) * 15;
+    timestamp = timestamp + formatdate(minute);
+
+    return timestamp;
+}
+
+function showEUWeather() {
+    // Europe
+    europeOverlay = new google.maps.GroundOverlay(
+        'http://api.meteoradar.co.uk/image/1.0/?time=' + weatherTimestamp() + '&type=radareuropa#fScheme',
+        imageBounds,
+        {opacity: .5});
+    europeOverlay.setMap(GoogleMap);
 }

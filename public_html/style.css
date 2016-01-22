@@ -82,6 +82,8 @@ div#sudo_buttons {flex: 1 0 auto;}
 .dropdown {
     position: relative;
     display: inline-block;
+    flex: 1 0 auto;
+    height: 23px;
 }
 
 /* Dropdown Content (Hidden by Default) */
