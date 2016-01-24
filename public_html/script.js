@@ -376,7 +376,9 @@ function initialize_map() {
         CenterLon = Number(localStorage['CenterLon']) || DefaultCenterLon;
         ZoomLvl = Number(localStorage['ZoomLvl']) || DefaultZoomLvl;
         MapType = localStorage['MapType'] || google.maps.MapTypeId.ROADMAP;
-        TracksVisible =  JSON.parse(localStorage['Tracks']);
+        if (localStorage['Tracks']) {
+            TracksVisible =  JSON.parse(localStorage['Tracks']);
+        }
         if (localStorage['ShowRange']) {
             ShowRange = JSON.parse(localStorage['ShowRange']);
         }
@@ -548,10 +550,6 @@ function initialize_map() {
         });
 
         // European Weather
-
-        
-        
-        
 
         if (localStorage['ShowWeather']) {
             ShowWeather = JSON.parse(localStorage['ShowWeather']);
