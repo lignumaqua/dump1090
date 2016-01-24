@@ -1186,15 +1186,15 @@ function toggleRange() {
 function toggleColumns() {
     if (ShowAll) {
          $('td:nth-child(4)').hide();
-         $('td:nth-child(8)').hide();
          $('td:nth-child(9)').hide();
+         $('td:nth-child(10)').hide();
          document.getElementById("map_canvas").style.marginRight = "320px";
          document.getElementById("sidebar_container").style.marginLeft = "-320px";
          document.getElementById("sidebar_container").style.width = "320px";
     } else {
         $('td:nth-child(4)').show();
-        $('td:nth-child(8)').show();
         $('td:nth-child(9)').show();
+        $('td:nth-child(10)').show();
         document.getElementById("map_canvas").style.marginRight = "380px";
         document.getElementById("sidebar_container").style.marginLeft = "-380px";
         document.getElementById("sidebar_container").style.width = "380px";
