@@ -714,6 +714,11 @@ static void decodeExtendedSquitter(struct modesMessage *mm)
 
     // Check CF on DF18 to work out the format of the ES and whether we need to look for an IMF bit
     if (mm->msgtype == 18) {
+        /* we just globally tag any DF18 as TIS-B,
+         * which is not strictly true but close enough
+         */
+        mm->bFlags |= MODES_ACFLAGS_FROM_TISB;
+
         switch (mm->cf) {
         case 0: //   ADS-B ES/NT devices that report the ICAO 24-bit address in the AA field
             break;
@@ -1030,9 +1035,9 @@ static void displayExtendedSquitter(struct modesMessage *mm) {
         }
 
         if (mm->bFlags & MODES_ACFLAGS_HAE_DELTA_VALID) {
-            printf("    HAE - Barometric  : %d ft\n", mm->hae_delta);
+            printf("    HAE/Baro offset   : %d ft\n", mm->hae_delta);
         } else {
-            printf("    HAE - Barometric  : not valid\n");
+            printf("    HAE/Baro offset   : not valid\n");
         }
     } else if (mm->metype >= 5 && mm->metype <= 22) { // Airborne position Baro
         printf("    F flag   : %s\n", (mm->msg[6] & 0x04) ? "odd" : "even");
@@ -1195,12 +1200,12 @@ void displayModesMessage(struct modesMessage *mm) {
     } else if (mm->msgtype == 18) { // DF 18 
         printf("DF 18: Extended Squitter.\n");
         printf("  Control Field : %d (%s)\n", mm->cf, cf_str[mm->cf]);
-        if ((mm->cf == 0) || (mm->cf == 1) || (mm->cf == 5) || (mm->cf == 6)) {
-            if (mm->cf == 1 || mm->cf == 5) {
-                printf("  Other Address : %06x\n", mm->addr);
-            } else {
-                printf("  ICAO Address  : %06x\n", mm->addr);
-            }
+        if (mm->addr & MODES_NON_ICAO_ADDRESS) {
+            printf("  Other Address : %06x\n", mm->addr);
+        } else {
+            printf("  ICAO Address  : %06x\n", mm->addr);
+        }
+        if ((mm->cf == 0) || (mm->cf == 1) || (mm->cf == 2) || (mm->cf == 5) || (mm->cf == 6)) {
             displayExtendedSquitter(mm);
         }             
 
