@@ -29,7 +29,7 @@ var imageBounds   = {
         east: 51.25,
         west: -19.6
 };
-
+var AutoClosest   = true;
 
 var SpecialSquawks = {
         '7500' : { cssClass: 'squawk7500', markerColor: 'rgb(255, 85, 85)', text: 'Aircraft Hijacking' },
@@ -347,6 +347,8 @@ function end_load_history() {
         refreshSelected();
         reaper();
 
+        selectClosest();
+
         // Setup our timer to poll from the server.
         window.setInterval(fetchData, RefreshInterval);
         window.setInterval(reaper, 60000);
@@ -362,6 +364,9 @@ function end_load_history() {
 
         // Update Europe Weather Image once every 15 minutes.
         window.setInterval(refreshEUWeather, 15*60000);
+
+        // Update Closest every 5 seconds.
+        window.setInterval(selectClosest, 5000);
 
 }
 
@@ -1052,7 +1057,7 @@ function selectPlaneByHex(hex,autofollow) {
                 hex = null;
         }
 
-        if (hex !== null) {
+    if (hex !== null) {
 		// Assign the new selected
 		SelectedPlane = hex;
 		Planes[SelectedPlane].selected = true;
@@ -1064,15 +1069,18 @@ function selectPlaneByHex(hex,autofollow) {
 		SelectedPlane = null;
 	}
 
-        if (SelectedPlane !== null && autofollow) {
+    if (SelectedPlane !== null && autofollow) {
                 FollowSelected = true;
                 if (GoogleMap.getZoom() < 8)
                         GoogleMap.setZoom(8);
-        } else {
-                FollowSelected = false;
-        } 
+    } else {
+            FollowSelected = false;
+    } 
 
-        refreshSelected();
+    refreshSelected();
+    // Turn off AutoClosest if plane is selected manually 
+    AutoClosest = false;
+    
 }
 
 function toggleFollowSelected() {
@@ -1238,4 +1246,30 @@ function showEUWeather() {
         imageBounds,
         {opacity: .5});
     europeOverlay.setMap(GoogleMap);
+}
+
+function selectClosest () {
+    if (AutoClosest) {
+        var planeClosestIcao = null;
+        var minDist = 9999999999;
+        for (var i = 0; i < PlanesOrdered.length; ++i) {
+            var plane = PlanesOrdered[i];
+            if (plane.sitedist && (plane.sitedist < minDist)) {
+                minDist = plane.sitedist;
+                planeClosestIcao = plane.icao;
+            }
+        }
+        // Only select this plane if it isn’t already selected
+        if (SelectedPlane != planeClosestIcao) {
+            selectPlaneByHex(planeClosestIcao,false);
+            // Reset the flag as it is reset by selectPlaneByHex()
+            AutoClosest = true;
+        }
+        //console.log("Closest " + minDist + planeClosestIcao);
+    }
+}
+
+function toggleSelectClosest() {
+    AutoClosest = !AutoClosest;
+    selectClosest();
 }
