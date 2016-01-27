@@ -29,7 +29,8 @@ var imageBounds   = {
         east: 51.25,
         west: -19.6
 };
-var AutoClosest   = true;
+var AutoClosest   = false;
+var UpdateAllIcons = false;
 
 var SpecialSquawks = {
         '7500' : { cssClass: 'squawk7500', markerColor: 'rgb(255, 85, 85)', text: 'Aircraft Hijacking' },
@@ -365,8 +366,8 @@ function end_load_history() {
         // Update Europe Weather Image once every 15 minutes.
         window.setInterval(refreshEUWeather, 15*60000);
 
-        // Update Closest every 5 seconds.
-        window.setInterval(selectClosest, 5000);
+        // Update Closest every 2 seconds.
+        window.setInterval(selectClosest, 2000);
 
 }
 
@@ -537,6 +538,14 @@ function initialize_map() {
                 localStorage['ZoomLvl']  = GoogleMap.getZoom();
                 // Force refresh of heatmap is zoom is changed
                 refreshHeatmap();
+                // Update map icons when zoom changes
+                UpdateAllIcons = true;
+                for (var i = 0; i < PlanesOrdered.length; ++i) {
+                    var plane = PlanesOrdered[i];
+                    plane.updateIcon();
+                }
+                UpdateAllIcons = false;
+                
         });
 	
         google.maps.event.addListener(GoogleMap, 'maptypeid_changed', function() {
@@ -1254,7 +1263,7 @@ function selectClosest () {
         var minDist = 9999999999;
         for (var i = 0; i < PlanesOrdered.length; ++i) {
             var plane = PlanesOrdered[i];
-            if (plane.sitedist && (plane.sitedist < minDist)) {
+            if (plane.visible && plane.sitedist && (plane.sitedist < minDist)) {
                 minDist = plane.sitedist;
                 planeClosestIcao = plane.icao;
             }

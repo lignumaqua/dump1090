@@ -285,9 +285,12 @@ PlaneObject.prototype.updateIcon = function() {
         var weight = this.selected ? 2 : 1;
         var rotation = (this.track === null ? 0 : this.track);
         
-        if (col === this.icon.fillColor && opacity == this.icon.fillOpacity && weight === this.icon.strokeWeight && outline == this.icon.strokeColor && rotation === this.icon.rotation && type == this.icon.type)
+        if (col === this.icon.fillColor && opacity == this.icon.fillOpacity && weight === this.icon.strokeWeight && outline == this.icon.strokeColor && rotation === this.icon.rotation && type == this.icon.type && !UpdateAllIcons)
                 return false;  // no changes
-        
+
+        var curzoom = GoogleMap.getZoom();
+        var scalezoomarray = [.4,.4,.4,.4,.4,.5,.6,.8,1,1,1,1,1,1,1,1,1,1,1,1];
+
         this.icon.fillColor = col;
         this.icon.fillOpacity = opacity;
         this.icon.strokeWeight = weight;
@@ -296,7 +299,7 @@ PlaneObject.prototype.updateIcon = function() {
         this.icon.type = type;
         this.icon.path = MarkerIcons[type].path;
         this.icon.anchor = MarkerIcons[type].anchor;
-        this.icon.scale = MarkerIcons[type].scale;
+        this.icon.scale = MarkerIcons[type].scale * scalezoomarray[curzoom];
         if (this.marker)
                 this.marker.setIcon(this.icon);
         return true;
@@ -368,8 +371,11 @@ PlaneObject.prototype.updateTick = function(receiver_timestamp, last_timestamp) 
                         this.clearLabel();
                         this.clearLines();
                         this.visible = false;
-			if (SelectedPlane == this.icao)
-                                selectPlaneByHex(null,false);
+			            if (SelectedPlane == this.icao) {
+                            var preserveAutoClosest = AutoClosest;
+                            selectPlaneByHex(null,false);
+                            AutoClosest = preserveAutoClosest;
+                        }
                 }
 	} else {
                 this.visible = true;
@@ -406,10 +412,11 @@ PlaneObject.prototype.updateMarker = function(moved) {
         }
         
 	if (this.marker) {
-                if (moved)
-			this.marker.setPosition(this.position);
+            if (moved) {
+			    this.marker.setPosition(this.position);
                 this.updateIcon();
                 this.mapLabel.set('text', numberWithCommas(this.altitude));
+            }
 	} else {
                 this.updateIcon();
 		this.marker = new google.maps.Marker({
