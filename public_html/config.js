@@ -130,3 +130,13 @@ FlagPath = "flags-tiny/";
 
 // Grid size for heatmap. Range in miles from Site. Default 200. 
 HeatMapRange = 200;
+
+// Set Altitudes and Colors for Range Rings
+// RangeAltitude is an array of altitudes in feet
+// Use 99999 for range at any altitude
+// RangeColor is a corresponding array containing the color values of the rings
+RangeAltitude  = new Array(99999,30000,10000);
+RangeColor     = new Array('#008000','#000080','#800000');
+
+// Allow use of MLAT data for the range poly
+UseMlatDataForRange = true;

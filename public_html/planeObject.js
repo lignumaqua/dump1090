@@ -324,22 +324,6 @@ PlaneObject.prototype.updateData = function(receiver_timestamp, data) {
                 this.position   = new google.maps.LatLng(data.lat, data.lon);               
                 this.last_position_time = receiver_timestamp - data.seen_pos;
               
-                if (SitePosition !== null) {
-                        this.sitedist = google.maps.geometry.spherical.computeDistanceBetween (SitePosition, this.position);
-                         // Calculate bearing and update Range[] array
-                        this.bearing = Math.floor(google.maps.geometry.spherical.computeHeading(SitePosition,this.position));
-                        if (this.bearing < 0) {
-                            this.bearing = 360 + this.bearing;
-                        }
-                        // Update the range polygon data if the distance is greater than stored
-                        if (this.sitedist > Range[this.bearing]) {
-                            Range[this.bearing] = this.sitedist;
-                            // Set dirty flag to trigger redraw of polygon on next tick
-                            RangeDirty = true;
-                            //console.log(this.bearing, Range[this.bearing], this.sitedist);
-                        }
-                }
-
                 this.position_from_mlat = false;
                 if (typeof data.mlat !== "undefined") {
                         for (var i = 0; i < data.mlat.length; ++i) {
@@ -349,6 +333,30 @@ PlaneObject.prototype.updateData = function(receiver_timestamp, data) {
                                 }
                         }
                 }
+
+
+                if (SitePosition !== null) {
+                        this.sitedist = google.maps.geometry.spherical.computeDistanceBetween (SitePosition, this.position);
+                         // Calculate bearing and update PolyRange[] array
+                        this.bearing = Math.floor(google.maps.geometry.spherical.computeHeading(SitePosition,this.position));
+                        if (this.bearing < 0) {
+                            this.bearing = 360 + this.bearing;
+                        }
+                        // Update the range polygon data if the distance is greater than stored for all altitudes
+                        // Obey the user option to use MLAT data or not
+                        if (this.altitude !== null && (!this.position_from_mlat || UseMlatDataForRange)) {
+                            for (var j = 0; j < RangeAltitude.length; ++j) {
+                                if (this.sitedist > PolyRange[j][this.bearing] && this.altitude <= RangeAltitude[j]) {
+                                    PolyRange[j][this.bearing] = this.sitedist;
+                                    // Set dirty flag to trigger redraw of polygon on next tick
+                                    RangeDirty = true;
+                                    //console.log(this.bearing, Range[this.bearing], this.sitedist);
+                                }
+                            }
+                        }
+                }
+
+                
         }
         if (typeof data.flight !== "undefined")
 		this.flight	= data.flight;

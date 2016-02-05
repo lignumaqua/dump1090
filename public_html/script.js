@@ -14,11 +14,21 @@ var SelectedPlane = null;
 var FollowSelected = false;
 
 var TracksVisible = true;
-var Range		  =  new Uint32Array(361);
-var RangeDirty    = true;
-var RangePoly     = [];
-var ShowRange     = false;
-var rangeline     = null;
+
+var PredictedRange = [];
+var PolyRange     = [];
+var rangepoints  = [];
+
+for (var j = 0; j < RangeAltitude.length; ++j) {
+    PolyRange[j]	   =  new Uint32Array(361);
+    rangepoints[j] = [];
+}
+
+var RangeDirty     = true;
+var ShowRange      = false;
+var ShowPredictedRange = true;
+var rangeline    = new Array(null,null,null);
+
 var ShowHeatMap   = false;
 var HeatMapValid  = false;
 var ShowAll       = false;
@@ -85,8 +95,8 @@ for (var i = 0; i < (HeatMapRange * 2); ++i){
 var HeatMapArray = [];
 
 // Get current range array from locastorage
- if (localStorage && localStorage["Range"]) {
-    Range = JSON.parse(localStorage["Range"]);
+ if (localStorage && localStorage["PolyRange"]) {
+    PolyRange = JSON.parse(localStorage["PolyRange"]);
 }
 
 function processReceiverUpdate(data) {
@@ -388,6 +398,9 @@ function initialize_map() {
         if (localStorage['ShowRange']) {
             ShowRange = JSON.parse(localStorage['ShowRange']);
         }
+        if (localStorage['ShowPredictedRange']) {
+            ShowRange = JSON.parse(localStorage['ShowPredictedRange']);
+        }
 
         if (localStorage['ShowAll']) {
             ShowAll = !JSON.parse(localStorage['ShowAll']);
@@ -642,14 +655,18 @@ function initialize_map() {
                                 ring.push(new google.maps.LatLng(points[j][0], points[j][1]));
                         }
                         ring.push(ring[0]);
-                        new google.maps.Polyline({
+                        PredictedRange.push(new google.maps.Polyline({
                                 path: ring,
                                 strokeOpacity: 1.0,
                                 strokeColor: altitude_colors[i],
                                 strokeWeight: 2,
-                                clickable: false,
-                                map: GoogleMap });
+                                clickable: false}));
                 }
+                if (ShowPredictedRange) {
+                    for (var j = 0; j < PredictedRange.length; ++j) {
+                        PredictedRange[j].setMap(GoogleMap);
+                    }
+                }  
         });
 
         request.fail(function(jqxhr, status, error) {
@@ -718,23 +735,28 @@ function refreshPageTitle() {
 // Refresh range polygon
 function refreshRange() {
     if (RangeDirty) {
-        var rangepoints  = [];
-        for (var a = 0; a < 360; ++a) {
-            rangepoints[a] = google.maps.geometry.spherical.computeOffset(SitePosition, Range[a], a);
-        }
-        // Close polyline
-        rangepoints[360] = rangepoints[0];
-        if (rangeline) {
-            rangeline.setPath(rangepoints);
-        } else {
-            rangeline = new google.maps.Polyline({path: rangepoints, strokeColor: '#008000', strokeWeight: 2, strokeOpacity: 1, clickable: false });
-        }
+        for (var j = 0; j < RangeAltitude.length; ++j) {
+            //rangepoints[j] = [];
+            for (var a = 0; a < 360; ++a) {
+                rangepoints[j][a] = google.maps.geometry.spherical.computeOffset(SitePosition, PolyRange[j][a], a);
+            }
+            // Close polyline
+            rangepoints[j][360] = rangepoints[j][0];    
         
+        
+            if (rangeline[j]) {
+                rangeline[j].setPath(rangepoints[j]);
+            } else {
+                rangeline[j] = new google.maps.Polyline({path: rangepoints[j], strokeColor: RangeColor[j], strokeWeight: 2, strokeOpacity: 1, clickable: false });
+            }
+        }
         // Store array in localstorage
-        localStorage["Range"] = JSON.stringify(Range);
+        localStorage["PolyRange"] = JSON.stringify(PolyRange);
         RangeDirty = false;
         if (ShowRange) {
-            rangeline.setMap(GoogleMap);
+            for (var j = 0; j < RangeAltitude.length; ++j) {
+                rangeline[j].setMap(GoogleMap);
+            }
         }
     }
 }
@@ -1154,12 +1176,14 @@ function toggleTracks() {
 
 
 function resetRange() {
-        // Reset rangle polygon
-        for (var a = 0; a < 361; ++a) {
-            Range[a] = 0;
+        // Reset rangle polygons
+        for (var j = 0; j < RangeAltitude.length; ++j) {
+            for (var a = 0; a < 361; ++a) {
+                PolyRange[j][a] = 0;
+            }
         }
         // Store array in localstorage
-        localStorage['Range'] = JSON.stringify(Range);   
+        localStorage['PolyRange'] = JSON.stringify(PolyRange);   
 }
 
 
@@ -1187,15 +1211,34 @@ function toggleWeather() {
 
 function toggleRange() {
     if (ShowRange) {
-        rangeline.setMap(null);
+        for (var j = 0; j < RangeAltitude.length; ++j) {
+            rangeline[j].setMap(null);
+        }
     } else {
         RangeDirty = true;
-        rangeline.setMap(GoogleMap);
+        for (var j = 0; j < RangeAltitude.length; ++j) {
+            rangeline[j].setMap(GoogleMap);
+        }
         refreshRange();
     }
     ShowRange = !ShowRange;
     localStorage['ShowRange'] = JSON.stringify(ShowRange);   
 }
+
+function togglePredictedRange() {
+    if (ShowPredictedRange) {
+        for (var j = 0; j < PredictedRange.length; ++j) {
+            PredictedRange[j].setMap(null);
+        }
+    } else {
+        for (var j = 0; j < PredictedRange.length; ++j) {
+            PredictedRange[j].setMap(GoogleMap);
+        }
+    }
+    ShowPredictedRange = !ShowPredictedRange;
+    localStorage['ShowpredictedRange'] = JSON.stringify(ShowPredictedRange);   
+}
+
 
 
 function toggleColumns() {
