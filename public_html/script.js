@@ -399,7 +399,7 @@ function initialize_map() {
             ShowRange = JSON.parse(localStorage['ShowRange']);
         }
         if (localStorage['ShowPredictedRange']) {
-            ShowRange = JSON.parse(localStorage['ShowPredictedRange']);
+            ShowPredictedRange = JSON.parse(localStorage['ShowPredictedRange']);
         }
 
         if (localStorage['ShowAll']) {
@@ -1236,7 +1236,7 @@ function togglePredictedRange() {
         }
     }
     ShowPredictedRange = !ShowPredictedRange;
-    localStorage['ShowpredictedRange'] = JSON.stringify(ShowPredictedRange);   
+    localStorage['ShowPredictedRange'] = JSON.stringify(ShowPredictedRange);   
 }
 
 
@@ -1311,7 +1311,7 @@ function selectClosest () {
                 planeClosestIcao = plane.icao;
             }
         }
-        // Only select this plane if it isn’t already selected
+        // Only select this plane if it isnÂ’t already selected
         if (SelectedPlane != planeClosestIcao) {
             selectPlaneByHex(planeClosestIcao,false);
             // Reset the flag as it is reset by selectPlaneByHex()
