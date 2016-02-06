@@ -933,6 +933,7 @@ function refreshSelected() {
 	}
         
         $('#selected_sitedist').text(format_distance_long(selected.sitedist));
+        $('#selected_sitebearing').text(format_bearing(selected.bearing));
         $('#selected_rssi').text(selected.rssi.toFixed(1) + ' dBFS');
 }
 

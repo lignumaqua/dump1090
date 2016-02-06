@@ -168,6 +168,15 @@ function format_distance_long(dist) {
 	return dist_text;
 }
 
+function format_bearing(bearing) {
+	if (bearing === null) {
+		return "";
+	}
+	var bearing_text = ', @ ' + bearing + '\xB0';
+	return bearing_text;
+}
+
+
 // p as a LatLng
 function format_latlng(p) {
 	return p.lat().toFixed(3) + DEGREES + "," + NBSP + p.lng().toFixed(3) + DEGREES;
