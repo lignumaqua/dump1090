@@ -28,6 +28,7 @@ var RangeDirty     = true;
 var ShowRange      = false;
 var ShowPredictedRange = true;
 var rangeline    = new Array(null,null,null);
+var RangeFill      = true;
 
 var ShowHeatMap   = false;
 var HeatMapValid  = false;
@@ -402,6 +403,10 @@ function initialize_map() {
             ShowPredictedRange = JSON.parse(localStorage['ShowPredictedRange']);
         }
 
+        if (localStorage['RangeFill']) {
+            RangeFill = JSON.parse(localStorage['RangeFill']);
+        }
+
         if (localStorage['ShowAll']) {
             ShowAll = !JSON.parse(localStorage['ShowAll']);
             toggleColumns();
@@ -746,8 +751,9 @@ function refreshRange() {
         
             if (rangeline[j]) {
                 rangeline[j].setPath(rangepoints[j]);
+                rangeline[j].setOptions({fillOpacity: (RangeFill ? 0.1 : 0)});
             } else {
-                rangeline[j] = new google.maps.Polyline({path: rangepoints[j], strokeColor: RangeColor[j], strokeWeight: 2, strokeOpacity: 1, clickable: false });
+                rangeline[j] = new google.maps.Polygon({path: rangepoints[j], strokeColor: RangeColor[j], strokeWeight: 2, strokeOpacity: 1, clickable: false, fillColor: RangeColor[j], fillOpacity: (RangeFill ? 0.1 : 0) });
             }
         }
         // Store array in localstorage
@@ -1325,4 +1331,11 @@ function selectClosest () {
 function toggleSelectClosest() {
     AutoClosest = !AutoClosest;
     selectClosest();
+}
+
+function toggleRangeFill() {
+    RangeFill = !RangeFill;
+    localStorage['RangeFill'] = JSON.stringify(RangeFill);   
+    RangeDirty = true;
+    refreshRange();
 }
