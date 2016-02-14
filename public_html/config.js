@@ -139,4 +139,4 @@ RangeAltitude  = new Array(99999,30000,10000);
 RangeColor     = new Array('#008000','#000080','#800000');
 
 // Allow use of MLAT data for the range poly
-UseMlatDataForRange = true;
+UseMlatDataForRange = false;

@@ -342,9 +342,20 @@ PlaneObject.prototype.updateData = function(receiver_timestamp, data) {
                         if (this.bearing < 0) {
                             this.bearing = 360 + this.bearing;
                         }
+
+                        // // Capture suspect data
+                        // if (this.altitude !== null) {
+                        //         if ((this.sitedist > 120*1852) && (!this.position_from_mlat || UseMlatDataForRange) && (this.altitude <= 10000) && (data.seen_pos < 5)) {
+                        //             console.log(data, receiver_timestamp, data.seen_pos);
+                        //         }
+
+                        // }
+
+
                         // Update the range polygon data if the distance is greater than stored for all altitudes
+                        // and last seen position was less than 5 seconds ago
                         // Obey the user option to use MLAT data or not
-                        if (this.altitude !== null && (!this.position_from_mlat || UseMlatDataForRange)) {
+                        if ((this.altitude !== null) && (!this.position_from_mlat || UseMlatDataForRange) && (data.seen_pos < 5)) {
                             for (var j = 0; j < RangeAltitude.length; ++j) {
                                 if (this.sitedist > PolyRange[j][this.bearing] && this.altitude <= RangeAltitude[j]) {
                                     PolyRange[j][this.bearing] = this.sitedist;
@@ -424,6 +435,9 @@ PlaneObject.prototype.updateMarker = function(moved) {
 			    this.marker.setPosition(this.position);
                 this.updateIcon();
                 this.mapLabel.set('text', numberWithCommas(this.altitude));
+                if (!isNaN(this.altitude)) {
+                    this.marker.setOptions({zIndex:this.altitude}); 
+                }
             }
 	} else {
                 this.updateIcon();
@@ -431,7 +445,8 @@ PlaneObject.prototype.updateMarker = function(moved) {
 			position: this.position,
 			map: GoogleMap,
 			icon: this.icon,
-			visible: true
+			visible: true,
+            zIndex: this.altitude
 		});
            this.updateLabel();     
 		// Trap clicks for this marker.
@@ -454,11 +469,13 @@ PlaneObject.prototype.updateLabel = function() {
           align: 'center',
           strokeWeight: 2,
           fontColor: '#303030',
-          yoffset: -25
+          yoffset: -25,
+          zIndex: this.altitude
         });
                 
         this.mapLabel.bindTo('GoogleMap', this.marker);
         this.mapLabel.bindTo('position', this.marker);
+        this.mapLabel.bindTo('zIndex', this.marker);
 }
 
 PlaneObject.prototype.clearLabel = function() {
