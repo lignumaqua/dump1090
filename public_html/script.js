@@ -859,13 +859,14 @@ function refreshSelected() {
         
         // $('#dump1090_infoblock').css('display','none');
         $('#selected_infoblock').css('display','block');
+
+        $('#selected_flightaware_link').attr('href','http://flightaware.com/live/modes/'+selected.icao+'/redirect');
         
         if (selected.flight !== null && selected.flight !== "") {
                 $('#selected_callsign').text(selected.flight);
                 $('#selected_links').css('display','inline');
                 $('#selected_fr24_link').attr('href','http://fr24.com/'+selected.flight);
                 $('#selected_flightstats_link').attr('href','http://www.flightstats.com/go/FlightStatus/flightStatusByFlight.do?flightNumber='+selected.flight);
-                $('#selected_flightaware_link').attr('href','http://flightaware.com/live/flight/'+selected.flight);
         } else {
                 $('#selected_callsign').text('n/a');
                 $('#selected_links').css('display','none');
@@ -1145,10 +1146,11 @@ function resetMap() {
 function drawCircle(marker, distance) {
     if (typeof distance === 'undefined') {
         return false;
-        
-        if (!(!isNaN(parseFloat(distance)) && isFinite(distance)) || distance < 0) {
-            return false;
-        }
+    }
+
+    distance = parseFloat(distance);
+    if (isNaN(distance) || !isFinite(distance) || distance < 0) {
+        return false;
     }
     
     distance *= 1000.0;
