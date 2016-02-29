@@ -7,11 +7,7 @@
 		<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" />
 		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 		<script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
-<<<<<<< HEAD
 		<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?sensor=false&amp;libraries=geometry,visualization"></script>
-=======
-		<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?libraries=geometry"></script>
->>>>>>> mutability/master
 		<script type="text/javascript" src="config.js"></script>
 		<script type="text/javascript" src="markers.js"></script>
 		<script type="text/javascript" src="dbloader.js"></script>
@@ -49,7 +45,7 @@
 		</div>
 		<div id="sidebar_container">
 			<div id="sidebar_canvas">
-				<div id="timestamps">
+				<div id="timestamps" style="align: center">
 					<table width="100%">
                                           <tr>
 					    <td align="center"> <canvas id="utcclock"></canvas> </td>
@@ -86,7 +82,7 @@
                                         <b id="infoblock_name">DUMP1090</b>
                                       </td>
                                       <td align="right">
-                                        <a href="https://github.com/mutability/dump1090" id="dump1090_version" target="_blank"></a>
+                                        <a href="https://github.com/mutability/dump1090" id="dump1090_version" target="_blank"></span>
                                       </td>
                                     </tr>
 
@@ -136,14 +132,11 @@
                                         <span id="selected_registration"></span>
                                         <span id="selected_icaotype"></span>
                                         <span id="selected_emergency"></span>
-<<<<<<< HEAD
                                         <br />
-=======
-                                        <a id="selected_flightaware_link" href="" target="_blank">[FlightAware]</a>
->>>>>>> mutability/master
                                         <span id="selected_links">
                                           <a id="selected_fr24_link" href="" target="_blank">[FR24]</a>
                                           <a id="selected_flightstats_link" href="" target="_blank">[FlightStats]</a>
+                                          <a id="selected_flightaware_link" href="" target="_blank">[FlightAware]</a>
                                         </span>
                                       </td>
                                     </tr>
@@ -179,7 +172,6 @@
 				<div id="planes_table">
 	                          <table id="tableinfo" width="100%">
 	                            <thead style="background-color: #BBBBBB; cursor: pointer;">
-                                 <tr>
 	                              <td id="icao" onclick="sortByICAO();">ICAO</td>
                                       <td id="flag" onclick="sortByCountry()"><!-- column for flag image --></td>
 				      <td id="flight" onclick="sortByFlight();">Flight</td>
@@ -188,14 +180,8 @@
 	                              <td id="speed" onclick="sortBySpeed();" align="right">Speed</td>
                                       <td id="distance" onclick="sortByDistance();" align="right">Dist</td>
                                       <td id="track" onclick="sortByTrack();" align="right">Track</td>
-<<<<<<< HEAD
 	                              <td id="msgs" onclick="sortByMsgs();" align="right" style="display: none;">Msgs</td>
 	                              <td id="seen" onclick="sortBySeen();" align="right" style="display: none;">Age</td>
-=======
-	                              <td id="msgs" onclick="sortByMsgs();" align="right">Msgs</td>
-	                              <td id="seen" onclick="sortBySeen();" align="right">Age</td>
-                                 </tr>
->>>>>>> mutability/master
                                     </thead>
                                     <tbody>
                                       <tr id="plane_row_template" class="plane_table_row hidden">
