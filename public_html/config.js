@@ -140,3 +140,9 @@ RangeColor     = new Array('#008000','#000080','#800000');
 
 // Allow use of MLAT data for the range poly
 UseMlatDataForRange = false;
+
+// Information that should appear in the label above each aircraft marker.
+// Enter only one of the following options.
+// Valid options are: icao, flight, squawk, category, altitude, speed, track, position, bearing, rssi
+// Leave blank to disable the label.
+LabelText = 'altitude';

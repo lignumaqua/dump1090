@@ -34,6 +34,7 @@ var ShowHeatMap   = false;
 var HeatMapValid  = false;
 var ShowAll       = false;
 var ShowWeather   = false;
+var ShowLabels    = true;
 var imageBounds   = {
         north: 72.05,
         south: 32.55,
@@ -410,6 +411,10 @@ function initialize_map() {
         if (localStorage['ShowAll']) {
             ShowAll = !JSON.parse(localStorage['ShowAll']);
             toggleColumns();
+        }
+
+         if (localStorage['ShowLabels']) {
+            ShowLabels = JSON.parse(localStorage['ShowLabels']);
         }
 
         // Set SitePosition, initialize sorting
@@ -1146,11 +1151,14 @@ function resetMap() {
 function drawCircle(marker, distance) {
     if (typeof distance === 'undefined') {
         return false;
-        
-        if (!(!isNaN(parseFloat(distance)) && isFinite(distance)) || distance < 0) {
+
+        distance = parseFloat(distance);
+        if (isNaN(distance) || !isFinite(distance) || distance < 0) {
             return false;
         }
     }
+
+    var labeldistance = distance;
     
     distance *= 1000.0;
     if (!Metric) {
@@ -1166,6 +1174,20 @@ function drawCircle(marker, distance) {
       strokeOpacity: 0.3
     });
     circle.bindTo('center', marker, 'position');
+
+    var labelposition = google.maps.geometry.spherical.computeOffset(SitePosition, distance,90);
+
+        // Add label to circle
+    var circlelabel = new MapLabel({
+          text: labeldistance,
+          position: labelposition,
+          map: GoogleMap,
+          fontSize: 14,
+          align: 'center',
+          strokeWeight: 2,
+          fontColor: '#101010',
+          yoffset: -7
+        });
 }
 
 
@@ -1336,7 +1358,12 @@ function toggleSelectClosest() {
 
 function toggleRangeFill() {
     RangeFill = !RangeFill;
-    localStorage['RangeFill'] = JSON.stringify(RangeFill);   
+    localStorage['RangeFill'] = JSON.stringify(RangeFill);
     RangeDirty = true;
     refreshRange();
+}
+
+function toggleLabels() {
+    ShowLabels = !ShowLabels;
+    localStorage['ShowLabels'] = JSON.stringify(ShowLabels);
 }

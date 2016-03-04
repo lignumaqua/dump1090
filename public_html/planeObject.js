@@ -434,7 +434,7 @@ PlaneObject.prototype.updateMarker = function(moved) {
             if (moved) {
 			    this.marker.setPosition(this.position);
                 this.updateIcon();
-                this.mapLabel.set('text', numberWithCommas(this.altitude));
+                this.mapLabel.set('text', (ShowLabels ? this[LabelText] : ''));
                 if (!isNaN(this.altitude)) {
                     this.marker.setOptions({zIndex:this.altitude}); 
                 }
@@ -462,7 +462,7 @@ PlaneObject.prototype.updateMarker = function(moved) {
 
 PlaneObject.prototype.updateLabel = function() {
       this.mapLabel = new MapLabel({
-          text: numberWithCommas(this.altitude),
+          text: (ShowLabels ? this[LabelText] : ''),
           position: this.position,
           map: GoogleMap,
           fontSize: 12,
